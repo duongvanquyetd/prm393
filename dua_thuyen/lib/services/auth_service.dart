@@ -1,118 +1,184 @@
-import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import 'package:sqflite/sqflite.dart';
+
+import 'local_db_service.dart';
 
 class AuthService {
-  // Allow overriding API base URL at runtime:
-  // flutter run --dart-define=API_BASE_URL=http://192.168.x.x:3000
-  static const String _baseFromDefine = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-  // Fallback to the current machine LAN IP observed in this workspace session.
-  // If your Wi-Fi IP changes, pass API_BASE_URL explicitly.
-  static const String _lanBase = 'http://192.168.0.172:3000';
+  static final List<Map<String, dynamic>> _webUsersMemory =
+      <Map<String, dynamic>>[];
 
-  static List<String> get _baseCandidates {
-    if (_baseFromDefine.isNotEmpty) return <String>[_baseFromDefine];
-    if (kIsWeb) return <String>['http://localhost:3000'];
-    // Android emulator default: 10.0.2.2
-    // Genymotion emulator host: 10.0.3.2
-    return <String>[
-      _lanBase,
-      'http://10.0.2.2:3000',
-      'http://10.0.3.2:3000',
-    ];
-  }
-
-  static Future<http.Response> _postWithFallback(String path, Map<String, dynamic> payload) async {
-    Object? lastError;
-    for (final base in _baseCandidates) {
-      try {
-        return await http
-            .post(Uri.parse('$base$path'), headers: {'Content-Type': 'application/json'}, body: jsonEncode(payload))
-            .timeout(const Duration(seconds: 6));
-      } catch (e) {
-        lastError = e;
-        debugPrint('Request failed on $base$path: $e');
-      }
+  static Future<Map<String, dynamic>> register(
+    String name,
+    String email,
+    String password,
+  ) async {
+    if (kIsWeb) {
+      return _registerWeb(name, email, password);
     }
-    throw lastError ?? Exception('No API endpoint reachable');
-  }
-
-  static Future<Map<String, dynamic>> register(String name, String email, String password) async {
     try {
-      final res = await _postWithFallback('/register', {'name': name, 'email': email, 'password': password});
-      if (res.statusCode == 200) {
-        try {
-          return jsonDecode(res.body) as Map<String, dynamic>;
-        } catch (_) {
-          return {'ok': true};
-        }
+      final normalizedName = name.trim();
+      final normalizedEmail = email.trim().toLowerCase();
+      final normalizedPassword = password.trim();
+
+      if (normalizedName.isEmpty ||
+          normalizedEmail.isEmpty ||
+          normalizedPassword.isEmpty) {
+        return {
+          'ok': false,
+          'body': {'error': 'Vui long nhap day du thong tin'},
+        };
       }
-      // Try parse body for structured error
-      try {
-        final parsed = jsonDecode(res.body);
-        debugPrint('Register failed: ${res.statusCode} $parsed');
-        return {'ok': false, 'status': res.statusCode, 'body': parsed};
-      } catch (_) {
-        debugPrint('Register failed: ${res.statusCode} ${res.body}');
-        return {'ok': false, 'status': res.statusCode, 'body': res.body};
+
+      final db = await LocalDbService.instance.database;
+      final existing = await db.query(
+        'users',
+        columns: ['id'],
+        where: 'email = ?',
+        whereArgs: [normalizedEmail],
+        limit: 1,
+      );
+
+      if (existing.isNotEmpty) {
+        return {
+          'ok': false,
+          'body': {'error': 'Tai khoan da ton tai'},
+        };
       }
-    } on TimeoutException {
-      debugPrint('Register request timeout');
-      return {
-        'ok': false,
-        'status': 0,
-        'body': {
-          'error': 'Ket noi server qua lau (timeout). Neu dung Genymotion, thu host 10.0.3.2 hoac dung --dart-define=API_BASE_URL=http://IP_MAY:3000'
-        }
-      };
+
+      await db.insert('users', {
+        'name': normalizedName,
+        'email': normalizedEmail,
+        'password': normalizedPassword,
+        'created_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.abort);
+
+      return {'ok': true};
     } catch (e) {
-      debugPrint('Register request error: $e');
+      debugPrint('Register error: $e');
       return {
         'ok': false,
-        'status': 0,
-        'body': {
-          'error': 'Khong ket noi duoc server. Neu dung dien thoai that, hay dung --dart-define=API_BASE_URL=http://IP_MAY_TINH:3000'
-        }
+        'body': {'error': 'Dang ky that bai: $e'},
       };
     }
   }
 
-  static Future<Map<String, dynamic>> login(String email, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
+    if (kIsWeb) {
+      return _loginWeb(email, password);
+    }
     try {
-      final res = await _postWithFallback('/login', {'email': email, 'password': password});
-      if (res.statusCode == 200) {
-        try {
-          return jsonDecode(res.body) as Map<String, dynamic>;
-        } catch (_) {
-          return {'ok': true};
-        }
+      final normalizedEmail = email.trim().toLowerCase();
+      final normalizedPassword = password.trim();
+
+      final db = await LocalDbService.instance.database;
+      final users = await db.query(
+        'users',
+        columns: ['name', 'email'],
+        where: 'email = ? AND password = ?',
+        whereArgs: [normalizedEmail, normalizedPassword],
+        limit: 1,
+      );
+
+      if (users.isEmpty) {
+        return {
+          'ok': false,
+          'body': {'error': 'Tai khoan hoac mat khau chua chinh xac'},
+        };
       }
-      try {
-        final parsed = jsonDecode(res.body);
-        debugPrint('Login failed: ${res.statusCode} $parsed');
-        return {'ok': false, 'status': res.statusCode, 'body': parsed};
-      } catch (_) {
-        debugPrint('Login failed: ${res.statusCode} ${res.body}');
-        return {'ok': false, 'status': res.statusCode, 'body': res.body};
-      }
-    } on TimeoutException {
-      debugPrint('Login request timeout');
+
+      final user = users.first;
       return {
-        'ok': false,
-        'status': 0,
-        'body': {
-          'error': 'Ket noi server qua lau (timeout). Neu dung Genymotion, thu host 10.0.3.2 hoac dung --dart-define=API_BASE_URL=http://IP_MAY:3000'
-        }
+        'ok': true,
+        'name': (user['name'] ?? user['email'] ?? normalizedEmail).toString(),
       };
     } catch (e) {
-      debugPrint('Login request error: $e');
+      debugPrint('Login error: $e');
       return {
         'ok': false,
-        'status': 0,
-        'body': {
-          'error': 'Khong ket noi duoc server. Neu dung dien thoai that, hay dung --dart-define=API_BASE_URL=http://IP_MAY_TINH:3000'
-        }
+        'body': {'error': 'Dang nhap that bai: $e'},
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> _registerWeb(
+    String name,
+    String email,
+    String password,
+  ) async {
+    try {
+      final normalizedName = name.trim();
+      final normalizedEmail = email.trim().toLowerCase();
+      final normalizedPassword = password.trim();
+      if (normalizedName.isEmpty ||
+          normalizedEmail.isEmpty ||
+          normalizedPassword.isEmpty) {
+        return {
+          'ok': false,
+          'body': {'error': 'Vui long nhap day du thong tin'},
+        };
+      }
+
+      final existed = _webUsersMemory.any(
+        (u) => (u['email'] ?? '').toString().toLowerCase() == normalizedEmail,
+      );
+      if (existed) {
+        return {
+          'ok': false,
+          'body': {'error': 'Tai khoan da ton tai'},
+        };
+      }
+
+      _webUsersMemory.add({
+        'name': normalizedName,
+        'email': normalizedEmail,
+        'password': normalizedPassword,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      return {'ok': true};
+    } catch (e) {
+      debugPrint('Register web error: $e');
+      return {
+        'ok': false,
+        'body': {'error': 'Dang ky that bai: $e'},
+      };
+    }
+  }
+
+  static Future<Map<String, dynamic>> _loginWeb(
+    String email,
+    String password,
+  ) async {
+    try {
+      final normalizedEmail = email.trim().toLowerCase();
+      final normalizedPassword = password.trim();
+      final matched = _webUsersMemory.cast<Map<String, dynamic>?>().firstWhere(
+        (u) =>
+            u != null &&
+            (u['email'] ?? '').toString().toLowerCase() == normalizedEmail &&
+            (u['password'] ?? '').toString() == normalizedPassword,
+        orElse: () => null,
+      );
+
+      if (matched == null) {
+        return {
+          'ok': false,
+          'body': {'error': 'Tai khoan hoac mat khau chua chinh xac'},
+        };
+      }
+
+      return {
+        'ok': true,
+        'name': (matched['name'] ?? matched['email'] ?? normalizedEmail)
+            .toString(),
+      };
+    } catch (e) {
+      debugPrint('Login web error: $e');
+      return {
+        'ok': false,
+        'body': {'error': 'Dang nhap that bai: $e'},
       };
     }
   }
