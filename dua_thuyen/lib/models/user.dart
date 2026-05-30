@@ -29,7 +29,7 @@ class User {
       name: map['name'] as String,
       email: map['email'] as String,
       price: (map['price'] as num).toDouble(),
-      password: (map['price'] as String),
+      password: map['password'] as String,
     );
   }
 

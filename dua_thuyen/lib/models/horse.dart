@@ -5,10 +5,11 @@ class Horse {
   final String name;
   final String imagePath;
   final Color color;
+  final List<String> frames;
 
   double position;
   bool finished;
-
+  double progress;
   Horse({
     required this.id,
     required this.name,
@@ -16,6 +17,8 @@ class Horse {
     required this.color,
     this.position = 0,
     this.finished = false,
+    required this.frames,
+    this.progress = 0,
   });
 
   void reset() {

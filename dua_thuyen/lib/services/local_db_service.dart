@@ -55,6 +55,7 @@ class LocalDbService {
   Future<List<User>> getUsers() async {
     final db = await database;
     final maps = await db.query('users');
+
     return maps.map((map) => User.fromMap(map)).toList();
   }
 
