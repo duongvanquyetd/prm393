@@ -49,7 +49,6 @@ class AuthService {
         'name': normalizedName,
         'email': normalizedEmail,
         'password': normalizedPassword,
-        'created_at': DateTime.now().toIso8601String(),
       }, conflictAlgorithm: ConflictAlgorithm.abort);
 
       return {'ok': true};
@@ -135,7 +134,6 @@ class AuthService {
         'name': normalizedName,
         'email': normalizedEmail,
         'password': normalizedPassword,
-        'created_at': DateTime.now().toIso8601String(),
       });
       return {'ok': true};
     } catch (e) {

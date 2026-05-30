@@ -38,6 +38,19 @@ class GameAudioService {
     }
   }
 
+  Future<void> playCountdownSound() async {
+    try {
+      await _effectPlayer.stop();
+      await _effectPlayer.setVolume(1.0);
+      await _effectPlayer.play(
+        AssetSource('audios/dem_nguoc.mp3'),
+      );
+      debugPrint('Đã phát tiếng đếm ngược');
+    } catch (e) {
+      debugPrint('Lỗi phát tiếng đếm ngược: $e');
+    }
+  }
+
   Future<void> playHorseRunSound() async {
     try {
       await _horseRunPlayer.stop();

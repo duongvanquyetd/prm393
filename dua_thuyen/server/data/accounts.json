@@ -2,31 +2,26 @@
   {
     "name": "hoang",
     "email": "0123456789",
-    "passwordHash": "$2a$10$kxVOYSpdKdc5pjHozaDbfuaFovRkGzKxlz0e/r6yR8a3MFw1izeCy",
-    "createdAt": "2026-05-27T17:54:59.914Z"
+    "passwordHash": "$2a$10$kxVOYSpdKdc5pjHozaDbfuaFovRkGzKxlz0e/r6yR8a3MFw1izeCy"
   },
   {
     "name": "hoang",
     "email": "hoang",
-    "passwordHash": "$2a$10$FJodKtqK3x0aXGzC4sSqReB4bpu6ZeFFDkIRaOBw24AxQbUCtmXAW",
-    "createdAt": "2026-05-27T18:12:18.987Z"
+    "passwordHash": "$2a$10$FJodKtqK3x0aXGzC4sSqReB4bpu6ZeFFDkIRaOBw24AxQbUCtmXAW"
   },
   {
     "name": "hoang",
     "email": "hoang1",
-    "passwordHash": "$2a$10$RyxGdOMbLFSCrnYFPrCfbOEDxTKKHCE7Zn990D3HcvL70kmd3EDIS",
-    "createdAt": "2026-05-27T19:13:58.810Z"
+    "passwordHash": "$2a$10$RyxGdOMbLFSCrnYFPrCfbOEDxTKKHCE7Zn990D3HcvL70kmd3EDIS"
   },
   {
     "name": "hehe",
     "email": "hoang2",
-    "passwordHash": "$2a$10$.ord16VokXFUBvJUdwxANOZlQhqtKfbXh8.HN0pQ8NHUxTlWBBCka",
-    "createdAt": "2026-05-27T19:30:14.210Z"
+    "passwordHash": "$2a$10$.ord16VokXFUBvJUdwxANOZlQhqtKfbXh8.HN0pQ8NHUxTlWBBCka"
   },
   {
     "name": "hoangart",
     "email": "hoang3",
-    "passwordHash": "$2a$10$JOVjlYMLfwWVXyHYm0ArLu436t6prIlzsRcoH9fKcjQpyp7ErRVZe",
-    "createdAt": "2026-05-27T19:42:59.410Z"
+    "passwordHash": "$2a$10$JOVjlYMLfwWVXyHYm0ArLu436t6prIlzsRcoH9fKcjQpyp7ErRVZe"
   }
 ]

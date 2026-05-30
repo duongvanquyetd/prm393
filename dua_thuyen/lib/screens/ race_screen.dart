@@ -31,6 +31,8 @@ class _RaceScreenState extends State<RaceScreen> {
   late ConfettiController confettiController;
 
   bool isRunning = false;
+  bool isCountingDown = false;
+  int countdownNumber = 3;
 
   @override
   void initState() {
@@ -60,8 +62,32 @@ class _RaceScreenState extends State<RaceScreen> {
     super.dispose();
   }
 
-  void startRace(double finishLine) {
+  Future<void> startRace(double finishLine) async {
+
+    if (isRunning || isCountingDown) return;
+
     setState(() {
+      isCountingDown = true;
+      countdownNumber = 3;
+    });
+
+    // Bật nhạc đếm ngược
+    audioService.playCountdownSound();
+
+    // Vòng lặp đếm 3, 2, 1
+    for (int i = 3; i > 0; i--) {
+      if (!mounted) return;
+      setState(() {
+        countdownNumber = i;
+      });
+      await Future.delayed(const Duration(seconds: 1));
+    }
+
+    if (!mounted) return;
+
+    // Kết thúc đếm ngược, bắt đầu cho ngựa chạy
+    setState(() {
+      isCountingDown = false;
       isRunning = true;
     });
 
@@ -221,7 +247,7 @@ class _RaceScreenState extends State<RaceScreen> {
                 right: 0,
                 child: Center(
                   child: ElevatedButton(
-                    onPressed: isRunning ? null : () => startRace(finishLine),
+                    onPressed: (isRunning || isCountingDown) ? null : () => startRace(finishLine),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.orange,
                       padding: const EdgeInsets.symmetric(
@@ -233,7 +259,7 @@ class _RaceScreenState extends State<RaceScreen> {
                       ),
                     ),
                     child: Text(
-                      isRunning ? 'ĐANG ĐUA...' : 'BẮT ĐẦU',
+                      isRunning ? 'ĐANG ĐUA...' : (isCountingDown ? 'CHUẨN BỊ...' : 'BẮT ĐẦU'),
                       style: const TextStyle(
                         fontSize: 22,
                         color: Colors.black,
@@ -243,6 +269,30 @@ class _RaceScreenState extends State<RaceScreen> {
                   ),
                 ),
               ),
+
+              if (isCountingDown)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black45, // Nền làm mờ một chút
+                    child: Center(
+                      child: Text(
+                        countdownNumber.toString(),
+                        style: const TextStyle(
+                          fontSize: 120,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.redAccent,
+                          shadows: [
+                            Shadow(
+                              blurRadius: 10.0,
+                              color: Colors.white,
+                              offset: Offset(0, 0),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
 
               Align(
                 alignment: Alignment.topLeft,
