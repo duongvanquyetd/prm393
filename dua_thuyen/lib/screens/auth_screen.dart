@@ -162,7 +162,7 @@ class _AuthScreenState extends State<AuthScreen> {
             final displayName = (res['name'] ?? _loginEmailCtrl.text)
                 .toString();
             Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => HomeScreen(name: displayName)),
+              MaterialPageRoute(builder: (_) => HomeScreen()),
             );
           }
         } else {

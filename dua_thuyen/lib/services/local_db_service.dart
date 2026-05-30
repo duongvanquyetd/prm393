@@ -1,3 +1,4 @@
+import 'package:dua_thuyen/models/user.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
@@ -19,21 +20,75 @@ class LocalDbService {
 
     return openDatabase(
       path,
-      version: 1,
-      onCreate: (db, version) async => _ensureSchema(db),
-      onOpen: (db) async => _ensureSchema(db),
+      version: 2,
+      onCreate: (db, version) async {
+        await _createUsersTable(db);
+      },
     );
   }
 
-  Future<void> _ensureSchema(Database db) async {
+  Future<void> _createUsersTable(Database db) async {
     await db.execute('''
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        phone TEXT NOT NULL,
+        avatar TEXT,
+        dateOfBirth TEXT NOT NULL,
+        price REAL NOT NULL
       )
     ''');
+  }
+
+  Future<int> insertUser(User user) async {
+    final db = await database;
+    return db.insert(
+      'users',
+      user.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<List<User>> getUsers() async {
+    final db = await database;
+    final maps = await db.query('users');
+
+    return maps.map((map) => User.fromMap(map)).toList();
+  }
+
+  Future<User?> getUserByEmail(String email) async {
+    final db = await database;
+
+    final maps = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return User.fromMap(maps.first);
+  }
+
+  Future<int> updateUser(User user) async {
+    final db = await database;
+
+    return db.update(
+      'users',
+      user.toMap(),
+      where: 'id = ?',
+      whereArgs: [user.id],
+    );
+  }
+
+  Future<int> deleteUser(int id) async {
+    final db = await database;
+
+    return db.delete(
+      'users',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
   }
 }
