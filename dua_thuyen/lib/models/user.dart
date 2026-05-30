@@ -6,6 +6,7 @@ class User {
   String? avatar;
   DateTime dateOfBirth;
   double price;
+  String password;
 
   User({
     this.id,
@@ -15,6 +16,7 @@ class User {
     this.avatar,
     required this.dateOfBirth,
     required this.price,
+    required this.password,
   });
 
   Map<String, dynamic> toMap() {
@@ -26,6 +28,7 @@ class User {
       'avatar': avatar,
       'dateOfBirth': dateOfBirth.toIso8601String(),
       'price': price,
+      'password': password,
     };
   }
 
@@ -38,6 +41,7 @@ class User {
       avatar: map['avatar'] as String?,
       dateOfBirth: DateTime.parse(map['dateOfBirth'] as String),
       price: (map['price'] as num).toDouble(),
+      password: map['password'] as String,
     );
   }
 
@@ -49,6 +53,7 @@ class User {
     String? avatar,
     DateTime? dateOfBirth,
     double? price,
+    String? password,
   }) {
     return User(
       id: id ?? this.id,
@@ -58,11 +63,12 @@ class User {
       avatar: avatar ?? this.avatar,
       dateOfBirth: dateOfBirth ?? this.dateOfBirth,
       price: price ?? this.price,
+      password: password ?? this.password,
     );
   }
 
   @override
   String toString() {
-    return 'User{id: $id, name: $name, email: $email, phone: $phone, avatar: $avatar, dateOfBirth: $dateOfBirth, price: $price}';
+    return 'User{id: $id, name: $name, email: $email, phone: $phone, avatar: $avatar, dateOfBirth: $dateOfBirth, price: $price, password: $password}';
   }
 }

@@ -20,8 +20,12 @@ class LocalDbService {
 
     return openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
+        await _createUsersTable(db);
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        await db.execute('DROP TABLE IF EXISTS users');
         await _createUsersTable(db);
       },
     );
@@ -33,10 +37,12 @@ class LocalDbService {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        phone TEXT NOT NULL,
+        password TEXT NOT NULL,
+        phone TEXT,
         avatar TEXT,
-        dateOfBirth TEXT NOT NULL,
-        price REAL NOT NULL
+        dateOfBirth TEXT,
+        price REAL DEFAULT 0,
+        created_at TEXT
       )
     ''');
   }
@@ -53,7 +59,6 @@ class LocalDbService {
   Future<List<User>> getUsers() async {
     final db = await database;
     final maps = await db.query('users');
-
     return maps.map((map) => User.fromMap(map)).toList();
   }
 
