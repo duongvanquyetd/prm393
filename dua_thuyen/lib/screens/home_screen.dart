@@ -54,18 +54,33 @@ class _HomeScreenState extends State<HomeScreen> {
         name: 'THẦN PHONG',
         imagePath: 'assets/images/ngua_do_1.png',
         color: Colors.red,
+        frames: [
+          'assets/images/ngua_do_1.png',
+          'assets/images/ngua_do_2.png',
+          'assets/images/ngua_do_3.png',
+        ],
       ),
       Horse(
         id: 2,
         name: 'BẠCH MÃ',
         imagePath: 'assets/images/ngua_xanh_la_cay_1.png',
-        color: Colors.blue,
+        color: Colors.green,
+        frames: [
+          'assets/images/ngua_xanh_la_cay_1.png',
+          'assets/images/ngua_xanh_la_cay_2.png',
+          'assets/images/ngua_xanh_la_cay_3.png',
+        ],
       ),
       Horse(
         id: 3,
         name: 'LONG VŨ',
         imagePath: 'assets/images/ngua_xanh_troi_1.png',
-        color: Colors.green,
+        color: Colors.blue,
+        frames: [
+          'assets/images/ngua_xanh_troi_1.png',
+          'assets/images/ngua_xanh_troi_2.png',
+          'assets/images/ngua_xanh_troi_3.png',
+        ],
       ),
     ];
 

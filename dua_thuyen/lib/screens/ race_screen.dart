@@ -1,7 +1,8 @@
 import 'package:confetti/confetti.dart';
 import 'package:dua_thuyen/services/audio_service.dart';
 import 'package:flutter/material.dart';
-
+import 'dart:async';
+import 'package:flutter/material.dart';
 import '../controllers/race_controller.dart';
 import '../models/bet.dart';
 import '../models/horse.dart';
@@ -36,13 +37,11 @@ class _RaceScreenState extends State<RaceScreen> {
   void initState() {
     super.initState();
 
-    // Vào màn đua thì xoay ngang
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
 
-    // Ẩn thanh hệ thống để màn đua rộng hơn
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     confettiController = ConfettiController(
       duration: const Duration(seconds: 3),
@@ -65,7 +64,6 @@ class _RaceScreenState extends State<RaceScreen> {
       isRunning = true;
     });
 
-    // Tiếng ngựa hí + tiếng chân ngựa phát chồng lên nhạc nền
     audioService.playHorseNeighSound();
     audioService.playHorseRunSound();
 
@@ -80,10 +78,8 @@ class _RaceScreenState extends State<RaceScreen> {
           isRunning = false;
         });
 
-        // Chỉ dừng tiếng chân ngựa, KHÔNG dừng nhạc nền
         await audioService.stopHorseRunSound();
 
-        // Pháo hoa phát chồng lên nhạc nền
         await audioService.playFireworkSound();
 
         confettiController.play();
@@ -161,13 +157,10 @@ class _RaceScreenState extends State<RaceScreen> {
 
         final double horseWidth = 110;
 
-        // Vị trí bắt đầu của ngựa ở sát bên phải
         final double startX = raceWidth - horseWidth - 10;
 
-        // Vạch đích bên trái
         final double finishX = 40;
 
-        // Quãng đường ngựa cần chạy
         final double finishLine = startX - finishX;
         final double lane1 = raceHeight * 0.45;
         final double lane2 = raceHeight * 0.56;
@@ -330,6 +323,61 @@ class _RaceScreenState extends State<RaceScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class AnimatedHorse extends StatefulWidget {
+  final List<String> frames;
+  final bool isRunning;
+  final double width;
+
+  const AnimatedHorse({
+    super.key,
+    required this.frames,
+    required this.isRunning,
+    this.width = 110,
+  });
+
+  @override
+  State<AnimatedHorse> createState() => _AnimatedHorseState();
+}
+
+class _AnimatedHorseState extends State<AnimatedHorse> {
+  int frameIndex = 0;
+
+  Timer? timer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    timer = Timer.periodic(
+      const Duration(milliseconds: 120),
+          (_) {
+        if (!widget.isRunning) return;
+
+        setState(() {
+          frameIndex =
+              (frameIndex + 1) % widget.frames.length;
+        });
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Image.asset(
+      widget.frames[frameIndex],
+      width: widget.width,
+      fit: BoxFit.contain,
     );
   }
 }
