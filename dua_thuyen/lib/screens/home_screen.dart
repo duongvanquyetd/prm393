@@ -4,7 +4,7 @@ import '../services/audio_service.dart';
 import '../models/bet.dart';
 import '../models/horse.dart';
 import '../widgets/bet_input_row.dart';
-import ' race_screen.dart';
+import 'race_screen.dart';
 class HomeScreen extends StatefulWidget {
   final int initialMoney;
   final bool landscapeMode;
@@ -46,8 +46,8 @@ class _HomeScreenState extends State<HomeScreen> {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
 
-    GameAudioService.instance.playBackgroundMusic();
-
+    // GameAudioService.instance.playBackgroundMusic();
+    GameAudioService.instance.resumeBackgroundMusic();
     horses = [
       Horse(
         id: 1,
@@ -355,10 +355,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Row(
       children: [
         const Text(
-          'ĐUA NGỰA',
+          'Thiên mã bất bại',
           style: TextStyle(
             color: Colors.white,
-            fontSize: 30,
+            fontSize: 28,
             fontWeight: FontWeight.w900,
           ),
         ),

@@ -21,24 +21,35 @@ class RaceController {
 
     for (final horse in horses) {
       horse.reset();
+      horse.progress = 0;
     }
 
-    _timer = Timer.periodic(const Duration(milliseconds: 40), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 45), (timer) {
       for (final horse in horses) {
         if (!horse.finished) {
-          /*
-            Random tốc độ liên tục:
-            Mỗi 40ms, mỗi con ngựa sẽ có tốc độ mới.
-            Nhờ vậy ngựa chạy lúc nhanh lúc chậm.
-          */
-          final double randomSpeed = 2 + _random.nextDouble() * 6;
+          final double progress = horse.position / finishLine;
 
-          horse.position += randomSpeed;
+          double speed;
+
+          // 85% đầu: chạy chậm hơn
+          if (progress < 0.85) {
+            speed = 1.2 + _random.nextDouble() * 2.5;
+          }
+          // 15% cuối: tăng tốc
+          else {
+            speed = 4.2 + _random.nextDouble() * 3.8;
+          }
+
+          horse.position += speed;
 
           if (horse.position >= finishLine) {
             horse.position = finishLine;
             horse.finished = true;
+          }
 
+          horse.progress = (horse.position / finishLine).clamp(0.0, 1.0);
+
+          if (horse.finished) {
             stopRace();
             onFinish(horse);
             return;

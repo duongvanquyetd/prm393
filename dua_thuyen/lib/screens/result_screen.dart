@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../models/bet.dart';
 import '../models/horse.dart';
 import 'home_screen.dart';
-
+import '../services/audio_service.dart';
 class ResultScreen extends StatefulWidget {
   final List<Horse> horses;
   final List<Bet> bets;
@@ -25,6 +25,7 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   @override
+  @override
   void initState() {
     super.initState();
 
@@ -34,6 +35,8 @@ class _ResultScreenState extends State<ResultScreen> {
     ]);
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    GameAudioService.instance.playBackgroundMusic();
   }
 
   int calculateNewMoney() {
@@ -57,6 +60,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void continueRace() {
+    GameAudioService.instance.resumeBackgroundMusic();
     final newMoney = calculateNewMoney();
 
     Navigator.pushAndRemoveUntil(
@@ -72,6 +76,7 @@ class _ResultScreenState extends State<ResultScreen> {
   }
 
   void backToHome() {
+    GameAudioService.instance.resumeBackgroundMusic();
     final newMoney = calculateNewMoney();
 
     Navigator.pushAndRemoveUntil(
