@@ -49,14 +49,16 @@ class _RaceScreenState extends State<RaceScreen> {
       duration: const Duration(seconds: 3),
     );
 
-    audioService.playBackgroundMusic();
-    audioService.playBackgroundMusic();
+    audioService.pauseBackgroundMusic();
+    // audioService.playBackgroundMusic();
   }
 
   @override
   void dispose() {
     raceController.dispose();
     confettiController.dispose();
+
+    audioService.stopHorseRunSound();
 
     super.dispose();
   }
@@ -213,6 +215,11 @@ class _RaceScreenState extends State<RaceScreen> {
               //     color: Colors.white,
               //   ),
               // ),
+              Positioned(
+                top: 14,
+                right: 14,
+                child: buildHorseProgressPanel(),
+              ),
               HorseTrack(
                 horse: widget.horses[0],
                 top: lane1,
@@ -314,7 +321,70 @@ class _RaceScreenState extends State<RaceScreen> {
       },
     );
   }
+  Widget buildHorseProgressPanel() {
+    return Container(
+      width: 170,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        children: [
+          for (final horse in widget.horses)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 11,
+                    backgroundColor: horse.color,
+                      child: Image.asset(
+                        horse.frames.first,
+                        fit: BoxFit.contain,
+                      ),
+                  ),
 
+                  const SizedBox(width: 6),
+
+                Expanded(
+                  child: Container(
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: horse.progress,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: horse.color,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                  const SizedBox(width: 5),
+
+                  Text(
+                    '${(horse.progress * 100).toInt()}%',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
   Widget buildBackground() {
     return ClipRRect(
       borderRadius: BorderRadius.circular(18),
