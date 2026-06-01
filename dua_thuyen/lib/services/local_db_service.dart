@@ -38,25 +38,19 @@ class LocalDbService {
         name TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
         password TEXT NOT NULL,
-        price REAL DEFAULT 0
+        price REAL DEFAULT 12500
       )
     ''');
   }
 
   Future<int> insertUser(User user) async {
     final db = await database;
+
     return db.insert(
       'users',
       user.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+      conflictAlgorithm: ConflictAlgorithm.abort,
     );
-  }
-
-  Future<List<User>> getUsers() async {
-    final db = await database;
-    final maps = await db.query('users');
-
-    return maps.map((map) => User.fromMap(map)).toList();
   }
 
   Future<User?> getUserByEmail(String email) async {
@@ -84,13 +78,14 @@ class LocalDbService {
     );
   }
 
-  Future<int> deleteUser(int id) async {
+  Future<int> updateUserPrice(int userId, double newPrice) async {
     final db = await database;
 
-    return db.delete(
+    return db.update(
       'users',
+      {'price': newPrice},
       where: 'id = ?',
-      whereArgs: [id],
+      whereArgs: [userId],
     );
   }
 }

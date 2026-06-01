@@ -57,7 +57,13 @@ class _AuthScreenState extends State<AuthScreen> {
         if (res['ok'] == true && mounted) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
+            MaterialPageRoute(
+              builder: (_) => HomeScreen(
+                userId: res['userId'] as int,
+                initialMoney: (res['price'] as num).toInt(),
+                landscapeMode: false,
+              ),
+            ),
           );
         } else {
           showMessage('Tài khoản hoặc mật khẩu không đúng');
@@ -66,29 +72,66 @@ class _AuthScreenState extends State<AuthScreen> {
         final res = await AuthService.register(name, username, password);
 
         if (res['ok'] == true) {
-          showMessage('Đăng ký thành công, hãy đăng nhập');
+          if (!mounted) return;
+
           setState(() {
             isLogin = true;
+            hidePassword = true;
             nameCtrl.clear();
             passwordCtrl.clear();
           });
+
+          showMessage('Đăng ký thành công, hãy đăng nhập');
         } else {
           showMessage('Đăng ký thất bại hoặc tài khoản đã tồn tại');
         }
       }
-    } catch (_) {
+    } catch (e) {
       showMessage('Có lỗi xảy ra, vui lòng thử lại');
     } finally {
-      if (mounted) setState(() => loading = false);
+      if (mounted) {
+        setState(() => loading = false);
+      }
     }
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xff5b3414),
-        content: Text(message),
-      ),
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(
+                Icons.info_outline,
+                color: Colors.orange,
+              ),
+              SizedBox(width: 8),
+              Text('Thông báo'),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(fontSize: 16),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+              ),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/horse.dart';
 
 class BetInputRow extends StatelessWidget {
@@ -32,7 +33,6 @@ class BetInputRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Ảnh ngựa thay cho số
           Container(
             width: 58,
             height: 58,
@@ -76,6 +76,9 @@ class BetInputRow extends StatelessWidget {
             child: TextField(
               controller: controller,
               keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+              ],
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,

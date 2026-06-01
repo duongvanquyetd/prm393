@@ -3,13 +3,16 @@ import 'package:flutter/services.dart';
 
 import '../models/bet.dart';
 import '../models/horse.dart';
-import 'home_screen.dart';
 import '../services/audio_service.dart';
+import '../services/local_db_service.dart';
+import 'home_screen.dart';
+
 class ResultScreen extends StatefulWidget {
   final List<Horse> horses;
   final List<Bet> bets;
   final Horse winner;
   final int oldMoney;
+  final int userId;
 
   const ResultScreen({
     super.key,
@@ -17,6 +20,7 @@ class ResultScreen extends StatefulWidget {
     required this.bets,
     required this.winner,
     required this.oldMoney,
+    required this.userId,
   });
 
   @override
@@ -24,10 +28,14 @@ class ResultScreen extends StatefulWidget {
 }
 
 class _ResultScreenState extends State<ResultScreen> {
-  @override
+  late final int newMoney;
+  bool saved = false;
+
   @override
   void initState() {
     super.initState();
+
+    newMoney = calculateNewMoney();
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
@@ -36,7 +44,10 @@ class _ResultScreenState extends State<ResultScreen> {
 
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
-    GameAudioService.instance.playBackgroundMusic();
+    Future.microtask(() async {
+      await GameAudioService.instance.restartBackgroundMusic();
+      await saveMoney();
+    });
   }
 
   int calculateNewMoney() {
@@ -52,21 +63,40 @@ class _ResultScreenState extends State<ResultScreen> {
       }
     }
 
+    if (money < 0) return 0;
     return money;
+  }
+
+  Future<void> saveMoney() async {
+    if (saved) return;
+
+    await LocalDbService.instance.updateUserPrice(
+      widget.userId,
+      newMoney.toDouble(),
+    );
+
+    saved = true;
   }
 
   Horse findHorseById(int id) {
     return widget.horses.firstWhere((horse) => horse.id == id);
   }
 
-  void continueRace() {
-    GameAudioService.instance.resumeBackgroundMusic();
-    final newMoney = calculateNewMoney();
+  Future<void> continueRace() async {
+    await saveMoney();
+
+    if (newMoney <= 0) {
+      showOutOfMoneyDialog();
+      return;
+    }
+
+    if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => HomeScreen(
+          userId: widget.userId,
           initialMoney: newMoney,
           landscapeMode: true,
         ),
@@ -75,14 +105,16 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  void backToHome() {
-    GameAudioService.instance.resumeBackgroundMusic();
-    final newMoney = calculateNewMoney();
+  Future<void> backToHome() async {
+    await saveMoney();
+
+    if (!mounted) return;
 
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(
         builder: (_) => HomeScreen(
+          userId: widget.userId,
           initialMoney: newMoney,
           landscapeMode: false,
         ),
@@ -91,81 +123,122 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
+  void showOutOfMoneyDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Hết tiền'),
+            ],
+          ),
+          content: const Text(
+            'Bạn đã hết tiền nên không thể tiếp tục đua nữa.',
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                backToHome();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+              ),
+              child: const Text(
+                'Về trang chủ',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final newMoney = calculateNewMoney();
+    final bool outOfMoney = newMoney <= 0;
 
     return Scaffold(
       backgroundColor: const Color(0xff06283d),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(18),
+          // Giảm padding tổng thể để có thêm không gian cho màn hình ngang
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               Expanded(
                 flex: 4,
-                child: buildWinnerBox(newMoney),
+                child: buildWinnerBox(outOfMoney),
               ),
-
-              const SizedBox(width: 18),
-
+              const SizedBox(width: 16),
               Expanded(
                 flex: 5,
                 child: Column(
                   children: [
-                    const Text(
-                      'BẢNG CƯỢC',
-                      style: TextStyle(
-                        color: Colors.yellow,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
+                    const FittedBox(
+                      child: Text(
+                        'BẢNG CƯỢC',
+                        style: TextStyle(
+                          color: Colors.yellow,
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-
-                    const SizedBox(height: 12),
-
+                    const SizedBox(height: 8),
                     Expanded(
                       child: ListView(
                         children: [
-                          for (final bet in widget.bets)
-                            buildBetResultRow(bet),
+                          for (final bet in widget.bets) buildBetResultRow(bet),
                         ],
                       ),
                     ),
-
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: ElevatedButton(
-                            onPressed: continueRace,
+                            onPressed: outOfMoney ? null : continueRace,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor:
+                              outOfMoney ? Colors.grey : Colors.orange,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: const Text(
-                              'TIẾP TỤC ĐUA',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
+                            child: FittedBox(
+                              child: Text(
+                                outOfMoney ? 'HẾT TIỀN' : 'TIẾP TỤC ĐUA',
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
                         ),
-
                         const SizedBox(width: 12),
-
                         Expanded(
                           child: ElevatedButton(
                             onPressed: backToHome,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            child: const Text(
-                              'VỀ HOME',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
+                            child: const FittedBox(
+                              child: Text(
+                                'VỀ TRANG CHỦ',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -182,88 +255,115 @@ class _ResultScreenState extends State<ResultScreen> {
     );
   }
 
-  Widget buildWinnerBox(int newMoney) {
+  Widget buildWinnerBox(bool outOfMoney) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xff0b3954),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white24),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
-            'KẾT QUẢ CUỘC ĐUA',
-            style: TextStyle(
-              color: Colors.yellow,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          const FittedBox(
+            child: Text(
+              'KẾT QUẢ CUỘC ĐUA',
+              style: TextStyle(
+                color: Colors.yellow,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
-
-          const SizedBox(height: 18),
-
+          const SizedBox(height: 4),
           const Text(
             'NGỰA CHIẾN THẮNG',
             style: TextStyle(
               color: Colors.white70,
-              fontSize: 16,
+              fontSize: 14,
             ),
           ),
-
-          const SizedBox(height: 12),
-
-          SizedBox(
-            width: 120,
-            height: 90,
+          const SizedBox(height: 8),
+          // Dùng Expanded cho hình ảnh để tự co giãn linh hoạt theo chiều dọc
+          Expanded(
             child: Image.asset(
               widget.winner.imagePath,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) {
-                return Text(
-                  '🐎',
-                  style: TextStyle(
-                    fontSize: 70,
-                    color: widget.winner.color,
+                return FittedBox(
+                  child: Text(
+                    '🐎',
+                    style: TextStyle(
+                      fontSize: 60,
+                      color: widget.winner.color,
+                    ),
                   ),
                 );
               },
             ),
           ),
-
-          const SizedBox(height: 10),
-
-          Text(
-            widget.winner.name,
-            style: const TextStyle(
-              color: Colors.yellow,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-
-          const SizedBox(height: 18),
-
-          Text(
-            'Tiền ban đầu: ${widget.oldMoney}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-            ),
-          ),
-
           const SizedBox(height: 8),
-
-          Text(
-            'Tiền hiện tại: $newMoney',
-            style: const TextStyle(
-              color: Colors.greenAccent,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+          FittedBox(
+            child: Text(
+              widget.winner.name,
+              style: const TextStyle(
+                color: Colors.yellow,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
+          const SizedBox(height: 12),
+          // Sử dụng Row thay vì Column cho phần tiền bạc để tiết kiệm chiều dọc
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Tiền ban đầu:',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              Text(
+                '${widget.oldMoney}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Tiền hiện tại:',
+                style: TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              Text(
+                '$newMoney',
+                style: TextStyle(
+                  color: outOfMoney ? Colors.redAccent : Colors.greenAccent,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          if (outOfMoney) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Bạn đã hết tiền!',
+              style: TextStyle(
+                color: Colors.redAccent,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -274,11 +374,11 @@ class _ResultScreenState extends State<ResultScreen> {
     final isWin = horse.id == widget.winner.id;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: const Color(0xff0b3954),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isWin ? Colors.green : Colors.red,
         ),
@@ -286,50 +386,54 @@ class _ResultScreenState extends State<ResultScreen> {
       child: Row(
         children: [
           SizedBox(
-            width: 54,
-            height: 44,
+            width: 44,
+            height: 36, // Giảm chiều cao ảnh để hàng cược thon gọn hơn
             child: Image.asset(
               horse.imagePath,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) {
-                return Text(
-                  '🐎',
-                  style: TextStyle(
-                    fontSize: 32,
-                    color: horse.color,
+                return FittedBox(
+                  child: Text(
+                    '🐎',
+                    style: TextStyle(
+                      color: horse.color,
+                    ),
                   ),
                 );
               },
             ),
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Text(
               horse.name,
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
+                fontSize: 14,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-
           Text(
             '${bet.amount}',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 16,
+              fontSize: 15,
             ),
           ),
-
-          const SizedBox(width: 16),
-
-          Text(
-            isWin ? 'WIN' : 'LOSE',
-            style: TextStyle(
-              color: isWin ? Colors.greenAccent : Colors.redAccent,
-              fontWeight: FontWeight.bold,
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 45,
+            child: Text(
+              isWin ? 'WIN' : 'LOSE',
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: isWin ? Colors.greenAccent : Colors.redAccent,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
         ],

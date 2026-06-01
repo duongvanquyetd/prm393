@@ -5,12 +5,15 @@ import '../models/bet.dart';
 import '../models/horse.dart';
 import '../widgets/bet_input_row.dart';
 import 'race_screen.dart';
+import 'auth_screen.dart';
 class HomeScreen extends StatefulWidget {
+  final int userId;
   final int initialMoney;
   final bool landscapeMode;
 
   const HomeScreen({
     super.key,
+    required this.userId,
     this.initialMoney = 12500,
     this.landscapeMode = false,
   });
@@ -46,8 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
       SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
 
-    // GameAudioService.instance.playBackgroundMusic();
-    GameAudioService.instance.resumeBackgroundMusic();
+    Future.microtask(() async {
+      await GameAudioService.instance.restartBackgroundMusic();
+    });
     horses = [
       Horse(
         id: 1,
@@ -135,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     if (totalBet > totalMoney) {
-      showMessage('Tổng tiền cược không được vượt quá số tiền hiện có');
+      showMessage('Tổng tiền cược không đủ để đặt cược');
       return;
     }
 
@@ -146,17 +150,89 @@ class _HomeScreenState extends State<HomeScreen> {
           horses: horses,
           bets: getBets(),
           totalMoney: totalMoney,
+          userId: widget.userId,
         ),
       ),
-    );
+    );;
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Thông báo'),
+            ],
+          ),
+          content: Text(message),
+          actions: [
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
-
+  void showHowToPlayDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return SafeArea(
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.help_outline, color: Colors.orange),
+                SizedBox(width: 8),
+                Text(
+                  'Hướng dẫn chơi',
+                  style: TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+            content: const SingleChildScrollView(
+              child: Text(
+                '1. Người chơi chọn 1 trong 3 con ngựa để đặt cược.\n\n'
+                    '2. Có thể đặt cược vào 1 con ngựa hoặc nhiều con nếu muốn.\n\n'
+                    '3. Nhập số tiền cược vào ô của con ngựa bạn chọn.\n\n'
+                    '4. Tổng tiền cược không được vượt quá số tiền hiện có.\n\n'
+                    '5. Sau khi nhập tiền, bấm “BẮT ĐẦU ĐUA”.\n\n'
+                    '6. Nếu ngựa bạn đặt cược chiến thắng, bạn sẽ nhận thưởng.',
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.45,
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'ĐÃ HIỂU',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     if (widget.landscapeMode) {
@@ -201,7 +277,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   buildHeader(),
                   const SizedBox(height: 26),
 
-                  const Text(
+                Center(
+                  child: Text(
                     'ĐẶT CƯỢC',
                     style: TextStyle(
                       color: Color(0xffffe44d),
@@ -210,6 +287,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       letterSpacing: 1,
                     ),
                   ),
+                ),
 
                   const SizedBox(height: 18),
 
@@ -221,28 +299,83 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const Spacer(),
 
-                  SizedBox(
-                    width: double.infinity,
-                    height: 58,
-                    child: ElevatedButton(
-                      onPressed: startGame,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xffffa000),
-                        elevation: 8,
-                        shadowColor: Colors.black.withOpacity(0.35),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
+                  Column(
+                    children: [
+                      SafeArea(
+                        top: false,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            bottom: MediaQuery.of(context).padding.bottom + 8,
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 58,
+                            child: ElevatedButton(
+                              onPressed: startGame,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xffffa000),
+                                elevation: 8,
+                                shadowColor: Colors.black.withOpacity(0.35),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30),
+                                ),
+                              ),
+                              child: const Text(
+                                'BẮT ĐẦU ĐUA',
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
-                      child: const Text(
-                        'BẮT ĐẦU ĐUA',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
+
+                      const SizedBox(height: 5),
+
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: OutlinedButton.icon(
+    onPressed: () async {
+    await GameAudioService.instance.stopBackgroundMusic();
+
+    if (!context.mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+    context,
+    MaterialPageRoute(
+    builder: (_) => const AuthScreen(),
+    ),
+    (route) => false,
+    );
+    },
+                          icon: const Icon(
+                            Icons.logout,
+                            color: Colors.white,
+                          ),
+                          label: const Text(
+                            'VỀ ĐĂNG NHẬP',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(
+                              color: Colors.white54,
+                              width: 2,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(30),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -354,15 +487,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildHeader() {
     return Row(
       children: [
-        const Text(
-          'Thiên mã bất bại',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
+        const Expanded(
+          child: Text(
+            'Thiên mã bất bại',
+            style: TextStyle(
+              color: const Color(0xffffa000),
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+
+            ),
           ),
         ),
-        const Spacer(),
+
+        IconButton(
+          onPressed: showHowToPlayDialog,
+          icon: const Icon(
+            Icons.help_outline,
+            color: Colors.white,
+            size: 30,
+          ),
+        ),
+
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(

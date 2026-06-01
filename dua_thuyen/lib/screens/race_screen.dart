@@ -14,12 +14,14 @@ class RaceScreen extends StatefulWidget {
   final List<Horse> horses;
   final List<Bet> bets;
   final int totalMoney;
+  final int userId;
 
   const RaceScreen({
     super.key,
     required this.horses,
     required this.bets,
     required this.totalMoney,
+    required this.userId,
   });
 
   @override
@@ -50,7 +52,7 @@ class _RaceScreenState extends State<RaceScreen> {
     );
 
     audioService.pauseBackgroundMusic();
-    // audioService.playBackgroundMusic();
+    audioService.stopAllEffects();
   }
 
   @override
@@ -119,6 +121,7 @@ class _RaceScreenState extends State<RaceScreen> {
             context,
             MaterialPageRoute(
               builder: (_) => ResultScreen(
+                userId: widget.userId,
                 horses: widget.horses,
                 bets: widget.bets,
                 winner: winner,
