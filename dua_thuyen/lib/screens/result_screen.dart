@@ -1,3 +1,4 @@
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -29,13 +30,20 @@ class ResultScreen extends StatefulWidget {
 
 class _ResultScreenState extends State<ResultScreen> {
   late final int newMoney;
+  late final bool wonMoney;
   bool saved = false;
+  late ConfettiController confettiController;
 
   @override
   void initState() {
     super.initState();
 
     newMoney = calculateNewMoney();
+    wonMoney = newMoney > widget.oldMoney;
+
+    confettiController = ConfettiController(
+      duration: const Duration(seconds: 3),
+    );
 
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeLeft,
@@ -45,9 +53,23 @@ class _ResultScreenState extends State<ResultScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     Future.microtask(() async {
-      await GameAudioService.instance.restartBackgroundMusic();
+      await GameAudioService.instance.resumeAfterRace();
+
+      if (wonMoney) {
+        await GameAudioService.instance.playFireworkSound();
+        confettiController.play();
+      } else {
+        await GameAudioService.instance.playWrongAnswerSound();
+      }
+
       await saveMoney();
     });
+  }
+
+  @override
+  void dispose() {
+    confettiController.dispose();
+    super.dispose();
   }
 
   int calculateNewMoney() {
@@ -169,31 +191,32 @@ class _ResultScreenState extends State<ResultScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xff06283d),
-      body: SafeArea(
-        child: Padding(
-          // Giảm padding tổng thể để có thêm không gian cho màn hình ngang
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 4,
-                child: buildWinnerBox(outOfMoney),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    const FittedBox(
-                      child: Text(
-                        'BẢNG CƯỢC',
-                        style: TextStyle(
-                          color: Colors.yellow,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
+      body: Stack(
+        children: [
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    flex: 4,
+                    child: buildWinnerBox(outOfMoney),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    flex: 5,
+                    child: Column(
+                      children: [
+                        const FittedBox(
+                          child: Text(
+                            'BẢNG CƯỢC',
+                            style: TextStyle(
+                              color: Colors.yellow,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: ListView(
@@ -251,6 +274,30 @@ class _ResultScreenState extends State<ResultScreen> {
             ],
           ),
         ),
+          ),
+          if (wonMoney) ...[
+            Align(
+              alignment: Alignment.topLeft,
+              child: ConfettiWidget(
+                confettiController: confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                numberOfParticles: 30,
+                gravity: 0.25,
+              ),
+            ),
+            Align(
+              alignment: Alignment.topRight,
+              child: ConfettiWidget(
+                confettiController: confettiController,
+                blastDirectionality: BlastDirectionality.explosive,
+                shouldLoop: false,
+                numberOfParticles: 30,
+                gravity: 0.25,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

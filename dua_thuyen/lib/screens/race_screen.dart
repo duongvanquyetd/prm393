@@ -2,7 +2,6 @@ import 'package:confetti/confetti.dart';
 import 'package:dua_thuyen/services/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:flutter/material.dart';
 import '../controllers/race_controller.dart';
 import '../models/bet.dart';
 import '../models/horse.dart';
@@ -51,8 +50,8 @@ class _RaceScreenState extends State<RaceScreen> {
       duration: const Duration(seconds: 3),
     );
 
-    audioService.pauseBackgroundMusic();
-    audioService.stopAllEffects();
+    unawaited(audioService.pauseForRace());
+    unawaited(audioService.stopAllEffects());
   }
 
   @override
@@ -61,6 +60,7 @@ class _RaceScreenState extends State<RaceScreen> {
     confettiController.dispose();
 
     audioService.stopHorseRunSound();
+    unawaited(audioService.resumeAfterRace());
 
     super.dispose();
   }
@@ -108,13 +108,10 @@ class _RaceScreenState extends State<RaceScreen> {
           isRunning = false;
         });
 
-        await audioService.stopHorseRunSound();
+        unawaited(audioService.playHorseNeighSound());
+        unawaited(audioService.stopHorseRunSound());
 
-        await audioService.playFireworkSound();
-
-        confettiController.play();
-
-        Future.delayed(const Duration(seconds: 3), () {
+        Future.delayed(const Duration(seconds: 2), () {
           if (!mounted) return;
 
           Navigator.pushReplacement(
@@ -137,21 +134,37 @@ class _RaceScreenState extends State<RaceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xff06283d),
-      body: SafeArea(
-        child: Column(
-          children: [
-            buildHeader(),
-            Expanded(child: buildRaceArea()),
-          ],
-        ),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          buildRaceArea(),
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: buildHeader(),
+          ),
+        ],
       ),
     );
   }
 
   Widget buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.all(14),
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(4, topPadding, 12, 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.black.withOpacity(0.55),
+            Colors.black.withOpacity(0.25),
+            Colors.transparent,
+          ],
+        ),
+      ),
       child: Row(
         children: [
           IconButton(
@@ -193,36 +206,20 @@ class _RaceScreenState extends State<RaceScreen> {
         final double finishX = 40;
 
         final double finishLine = startX - finishX;
-        final double lane1 = raceHeight * 0.45;
-        final double lane2 = raceHeight * 0.56;
-        final double lane3 = raceHeight * 0.70;
+        final double lane1 = raceHeight * 0.50;
+        final double lane2 = raceHeight * 0.63;
+        final double lane3 = raceHeight * 0.76;
+        final double headerInset = MediaQuery.of(context).padding.top + 52;
 
-        return Container(
-          margin: const EdgeInsets.all(12),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: const Color(0xffc8873f),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white24),
-          ),
-          child: Stack(
-            children: [
-              buildBackground(),
-
-              // Positioned(
-              //   right: 55,
-              //   top: 20,
-              //   bottom: 20,
-              //   child: Container(
-              //     width: 6,
-              //     color: Colors.white,
-              //   ),
-              // ),
-              Positioned(
-                top: 14,
-                right: 14,
-                child: buildHorseProgressPanel(),
-              ),
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            buildBackground(),
+            Positioned(
+              top: headerInset,
+              right: 14,
+              child: buildHorseProgressPanel(),
+            ),
               HorseTrack(
                 horse: widget.horses[0],
                 top: lane1,
@@ -244,34 +241,37 @@ class _RaceScreenState extends State<RaceScreen> {
                 startX: startX,
               ),
 
-              Positioned(
-                bottom: 18,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: (isRunning || isCountingDown) ? null : () => startRace(finishLine),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 55,
-                        vertical: 14,
+              if (!isRunning)
+                Positioned(
+                  bottom: 18,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: ElevatedButton(
+                      onPressed: isCountingDown
+                          ? null
+                          : () => startRace(finishLine),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 55,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: Text(
-                      isRunning ? 'ĐANG ĐUA...' : (isCountingDown ? 'CHUẨN BỊ...' : 'BẮT ĐẦU'),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        color: Colors.black,
-                        fontWeight: FontWeight.bold,
+                      child: Text(
+                        isCountingDown ? 'CHUẨN BỊ...' : 'BẮT ĐẦU',
+                        style: const TextStyle(
+                          fontSize: 22,
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
 
               if (isCountingDown)
                 Positioned.fill(
@@ -319,7 +319,6 @@ class _RaceScreenState extends State<RaceScreen> {
                 ),
               ),
             ],
-          ),
         );
       },
     );
@@ -389,27 +388,24 @@ class _RaceScreenState extends State<RaceScreen> {
     );
   }
   Widget buildBackground() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: Image.asset(
-        'assets/images/duong_dua.png',
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            color: const Color(0xffc8873f),
-            alignment: Alignment.center,
-            child: const Text(
-              'Không tìm thấy ảnh duong_dua.png',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+    return Image.asset(
+      'assets/images/duong_dua.png',
+      width: double.infinity,
+      height: double.infinity,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return Container(
+          color: const Color(0xffc8873f),
+          alignment: Alignment.center,
+          child: const Text(
+            'Không tìm thấy ảnh duong_dua.png',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
