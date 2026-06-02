@@ -199,7 +199,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     Text(
                       'Thiên mã bất bại',
                       style: GoogleFonts.fredoka(
-                        fontSize: 42,
+                        fontSize: 40,
                         fontWeight: FontWeight.w900,
                         color: const Color(0xffffd54f),
                         shadows: const [

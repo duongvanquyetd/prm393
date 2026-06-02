@@ -34,6 +34,7 @@ class _RaceScreenState extends State<RaceScreen> {
 
   bool isRunning = false;
   bool isCountingDown = false;
+  bool isFinished = false;
   int countdownNumber = 3;
 
   @override
@@ -67,10 +68,11 @@ class _RaceScreenState extends State<RaceScreen> {
 
   Future<void> startRace(double finishLine) async {
 
-    if (isRunning || isCountingDown) return;
+    if (isRunning || isCountingDown || isFinished) return;
 
     setState(() {
       isCountingDown = true;
+      isFinished = false;
       countdownNumber = 3;
     });
 
@@ -106,6 +108,7 @@ class _RaceScreenState extends State<RaceScreen> {
       onFinish: (winner) async {
         setState(() {
           isRunning = false;
+          isFinished = true;
         });
 
         unawaited(audioService.playHorseNeighSound());
@@ -193,7 +196,7 @@ class _RaceScreenState extends State<RaceScreen> {
     );
   }
 
-  Widget buildRaceArea() {
+  Widget  buildRaceArea() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final double raceWidth = constraints.maxWidth;
@@ -241,7 +244,7 @@ class _RaceScreenState extends State<RaceScreen> {
                 startX: startX,
               ),
 
-              if (!isRunning)
+              if (!isRunning && !isFinished)
                 Positioned(
                   bottom: 18,
                   left: 0,
