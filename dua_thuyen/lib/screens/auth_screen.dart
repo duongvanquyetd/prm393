@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../services/audio_service.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 
@@ -19,6 +21,20 @@ class _AuthScreenState extends State<AuthScreen> {
   final nameCtrl = TextEditingController();
   final usernameCtrl = TextEditingController();
   final passwordCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+    ]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+    Future.microtask(() {
+      GameAudioService.instance.ensureBackgroundMusic();
+    });
+  }
 
   @override
   void dispose() {

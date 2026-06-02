@@ -50,7 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     Future.microtask(() async {
-      await GameAudioService.instance.restartBackgroundMusic();
+      await GameAudioService.instance.ensureBackgroundMusic();
     });
     horses = [
       Horse(
